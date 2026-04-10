@@ -1,0 +1,339 @@
+pip install transformers diffusers accelerate torch 
+pip install -U transformers or --upgrade
+
+!pip uninstall -y transformers
+!pip uninstall -y transformers
+!pip uninstall -y tokenizers
+!pip uninstall -y huggingface_hub
+pip install transformers==4.41.2 tokenizers==0.19.1 huggingface_hub==0.23.0
+
+
+----------------------------------------------------------------------------------------
+
+
+EXP-1 (STABLE DIFFUSION)
+
+from diffusers import StableDiffusionPipeline
+import torch
+
+
+pipe = StableDiffusionPipeline.from_pretrained(
+    "runwayml/stable-diffusion-v1-5",
+    torch_dtype=torch.float16
+).to("cuda")   # only if GPU works
+
+prompt = "A high-resolution medical image of retinal disease with detailed blood vessels"
+
+image = pipe(prompt).images[0]
+
+image.save("generated_image.png")
+image.show()
+
+print("Image generated and saved as generated_image.png")
+
+---
+for cpu:
+float32
+and --> remove .to("cuda")
+and add --> pipe = pipe.to("cpu")
+
+--------------------------------------------------------------------------------
+EXP-2 (FINE TUNING SD)
+
+
+from diffusers import StableDiffusionPipeline
+import torch
+
+model_id = "runwayml/stable-diffusion-v1-5"
+
+pipe = StableDiffusionPipeline.from_pretrained(
+    model_id,
+    torch_dtype=torch.float16
+).to("cuda")   # only if GPU works
+
+prompt = "A high-resolution medical image of retinal disease with detailed blood vessels"
+
+image = pipe(prompt).images[0]
+
+image.save("generated_image.png")
+image.show()
+
+print("Image generated and saved as generated_image.png")
+
+--------------------------------------------------------------------------------
+EXP-3 (QN SYSTEM)
+
+from transformers import pipeline
+
+qa_pipeline = pipeline(
+    "question-answering",
+    model="distilbert-base-cased-distilled-squad"
+)
+
+def ask_question(context, question):
+    result = qa_pipeline(question=question, context=context)
+    return result
+
+context = """
+Artificial Intelligence is the simulation of human intelligence by machines.
+It includes learning, reasoning, and self-correction.
+AI is widely used in healthcare, robotics, and smart cities.
+"""
+
+question = input("Enter your question: ")
+
+result = ask_question(context, question)
+
+print("Answer:", result['answer'])
+
+
+----------------------------------------------------------------------
+EXP-4 (SUMMARIZATION)
+
+from transformers import pipeline 
+ 
+summarizer = pipeline("summarization") 
+ 
+text = input("Enter paragraph:\n") 
+ 
+summary = summarizer(text, do_sample=False) 
+ 
+print("\nOriginal Text:\n", text) 
+print("\nSummary:\n", summary[0]['summary_text']) 
+
+----------------------------------------------------------------------
+
+EXP-5 (PROMPT COMPLETION)
+
+from transformers import pipeline 
+ 
+generator = pipeline("text-generation", model="gpt2") 
+ 
+prompt = input("Enter incomplete prompt:\n") 
+ 
+result = generator(prompt, max_length=50, num_return_sequences=1) 
+ 
+print("\nCompleted Text:\n", result[0]['generated_text']) 
+
+-----------------------------------------------------------------------
+EXP-6 (PROMPTING)
+
+from transformers import pipeline 
+ 
+generator = pipeline("text-generation", model="gpt2") 
+
+prompt = """ 
+Write a short article on 'Applications of Generative AI in Healthcare'. 
+Include: 
+- Introduction - Key applications (diagnosis, drug discovery, medical imaging) 
+Keep it clear and around 120-150 words. 
+""" 
+ 
+result = generator(prompt, max_length=180, num_return_sequences=1) 
+ 
+print("Generated Article:\n") 
+print(result[0]['generated_text']) 
+
+------------------------------------------------------------------------
+------------------------------------------------------------------------
+PART - B
+
+EXP-1
+
+import numpy as np 
+ 
+X = np.array([ 
+    [1, 0, 1, 0], 
+    [0, 2, 0, 2], 
+    [1, 1, 1, 1] 
+], dtype=float) 
+ 
+np.random.seed(0) 
+Wq = np.random.rand(4, 4) 
+Wk = np.random.rand(4, 4) 
+Wv = np.random.rand(4, 4) 
+ 
+Q = X @ Wq 
+K = X @ Wk 
+V = X @ Wv 
+ 
+scores = Q @ K.T 
+ 
+def softmax(x): 
+    exp_x = np.exp(x - np.max(x)) 
+    return exp_x / exp_x.sum(axis=1, keepdims=True) 
+attention_weights = softmax(scores) 
+context = attention_weights @ V 
+ 
+print("Input Sequence:\n", X) 
+print("\nAttention Scores:\n", scores) 
+print("\nAttention Weights (Softmax):\n", attention_weights) 
+print("\nContext Vector:\n", context)
+
+------------------------------------------------------------------------
+
+EXP-2 
+
+import torch
+import torch.nn as nn
+
+
+G = nn.Sequential(nn.Linear(10, 8), nn.ReLU(), nn.Linear(8, 4))
+D = nn.Sequential(nn.Linear(4, 8), nn.ReLU(), nn.Linear(8, 1), 
+nn.Sigmoid())
+
+
+loss = nn.BCELoss()
+opt_G = torch.optim.Adam(G.parameters(), 0.001)
+opt_D = torch.optim.Adam(D.parameters(), 0.001)
+
+
+real_data = torch.randn(5, 4)
+print("Real Data:\n", real_data)
+
+
+
+
+for epoch in range(8):
+    noise = torch.randn(5, 10)
+    fake_data = G(noise)
+
+
+    d_loss = loss(D(real_data), torch.ones(5, 1)) + \
+             loss(D(fake_data.detach()), torch.zeros(5, 1))
+    opt_D.zero_grad()
+    d_loss.backward()
+    opt_D.step()
+
+
+    g_loss = loss(D(fake_data), torch.ones(5, 1))
+    opt_G.zero_grad()
+    g_loss.backward()
+    opt_G.step()
+
+
+    print(f"\nEpoch {epoch+1}")
+    print("Generated Data:\n", fake_data)
+    print(f"D Loss = {d_loss.item():.4f}, G Loss = {g_loss.item():.4f}")
+
+
+print("\nFinal Generated Output After Training:")
+print(G(torch.randn(1, 10)))
+
+
+--------------------------------------------------------------------
+
+EXP-3 (Sanna version)
+
+from transformers import AutoTokenizer, AutoModelForCausalLM
+from peft import LoraConfig, get_peft_model
+import torch
+
+# Load model
+tokenizer = AutoTokenizer.from_pretrained("gpt2")
+model = AutoModelForCausalLM.from_pretrained("gpt2")
+
+# Apply LoRA
+model = get_peft_model(model, LoraConfig(r=4, lora_alpha=16, target_modules=["c_attn"], task_type="CAUSAL_LM"))
+
+# Training data
+text = "Q: What is AI?\nA: Artificial Intelligence is the simulation of human intelligence."
+inputs = tokenizer(text, return_tensors="pt")
+
+# Generate function
+def generate(q):
+    return tokenizer.decode(model.generate(tokenizer(q, return_tensors="pt").input_ids, max_length=40)[0], skip_special_tokens=True)
+
+# BEFORE
+print("Before:", generate("Q: What is AI?\nA:"))
+
+# Train (simple loop)
+opt = torch.optim.AdamW(model.parameters(), lr=5e-5)
+for _ in range(50):
+    loss = model(**inputs, labels=inputs["input_ids"]).loss
+    loss.backward()
+    opt.step()
+    opt.zero_grad()
+
+# AFTER
+print("After:", generate("Q: What is AI?\nA:"))
+
+
+------------------------------------------------------------------
+
+EXP-4 (CHAIN OF THOUGHT)
+
+from transformers import pipeline 
+ 
+generator = pipeline("text-generation", model="gpt2") 
+ 
+question = "If a train travels 60 km in 1 hour, how far will it travel in 5 hours?" 
+ 
+# 1. Zero-shot Prompt 
+zero_shot_prompt = f"Q: {question}\nA:" 
+ 
+# 2. Few-shot Prompt 
+few_shot_prompt = """ 
+Q: If a car travels 10 km in 1 hour, how far in 3 hours? 
+A: 30 km 
+ 
+Q: If a bike travels 15 km in 1 hour, how far in 2 hours? 
+A: 30 km 
+ 
+Q: """ + question + "\nA:" 
+ 
+# 3. Chain-of-Thought Prompt 
+cot_prompt = f"Q: {question}\nA: Let's think step by step." 
+ 
+def generate(prompt): 
+    output = generator(prompt, max_length=80, num_return_sequences=1) 
+    return output[0]['generated_text'] 
+ 
+zero_output = generate(zero_shot_prompt) 
+few_output = generate(few_shot_prompt) 
+cot_output = generate(cot_prompt) 
+print("=== Zero-shot Output ===") 
+print(zero_output) 
+ 
+print("\n=== Few-shot Output ===") 
+print(few_output) 
+ 
+print("\n=== Chain-of-Thought Output ===") 
+print(cot_output) 
+
+--------------------------------------------------------------------------------------
+
+EXP-5 
+
+from sklearn.feature_extraction.text import CountVectorizer 
+from sklearn.linear_model import LogisticRegression 
+from sklearn.naive_bayes import MultinomialNB 
+ 
+texts = [ 
+    "Win money now",  
+    "Limited offer claim prize", 
+    "Hello friend how are you", 
+    "Let's meet tomorrow" 
+] 
+ 
+labels = [1, 1, 0, 0]  # 1 = spam, 0 = not spam 
+ 
+vectorizer = CountVectorizer() 
+X = vectorizer.fit_transform(texts) 
+ 
+log_model = LogisticRegression() 
+nb_model = MultinomialNB() 
+ 
+log_model.fit(X, labels) 
+nb_model.fit(X, labels) 
+ 
+test_text = ["Win a free prize"] 
+X_test = vectorizer.transform(test_text) 
+ 
+log_pred = log_model.predict(X_test) 
+nb_pred = nb_model.predict(X_test) 
+print("Test Input:", test_text[0]) 
+print("\nLogistic Regression Prediction (Discriminative):", "Spam" if 
+log_pred[0] else "Not Spam") 
+print("Naive Bayes Prediction (Generative):", "Spam" if nb_pred[0] else 
+"Not Spam") 
